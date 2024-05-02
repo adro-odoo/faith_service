@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="approval_request_button_action" model="ir.actions.server">
+        <field name="name">Approval Request Action</field>
+        <field name="model_id" ref="stock.model_stock_picking" />
+        <field name="state">code</field>
+        <field name="code">
+if not record.picking_type_id.x_approval_type:
+    raise UserError('Please select an approval category type.')
+
+approval_request_vals = {
+    'name': f"Approval Request for {record.name}",
+    'category_id': record.picking_type_id.x_approval_type.id,
+    'request_owner_id': env.user.id,
+}
+approval_request = env['approval.request'].create(approval_request_vals)
+
+record['x_approval_sent'] = False
+        </field>
+    </record>
+
+    <record id="validate_button_action" model="ir.actions.server">
+        <field name="name">Validate Action</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="state">code</field>
+        <field name="code">
+if record.x_approval_status != 'approved':
+    for line in record.move_ids_without_package:
+        quants = line.product_id.stock_quant_ids.filtered(lambda b: b.location_id == record.location_id)
+        if quants:
+            if any(quant.quantity &lt; quant.reserved_quantity for quant in quants):
+                record['x_approval_sent'] = True
+                record['x_approval_status_check'] = True
+                break
+            else:
+                record.button_validate()
+        else:
+            record.button_validate()
+else:
+    record.button_validate()     
+    record['x_approval_sent'] = False
+        </field>
+    </record>
+
+    <record id="action_redirect_to_transfer" model="ir.actions.server">
+        <field name="name">Redirect to Transfer</field>
+        <field name="model_id" ref="approvals.model_approval_request"/>
+        <field name="state">code</field>
+        <field name="code">
+approval_name = record.name
+picking_identifier = approval_name[len('Approval Request for '):]
+pickings = env['stock.picking'].search([('name', '=', picking_identifier)])
+for picking in pickings:
+    action = {
+        'name': 'Transfer',
+        'type': 'ir.actions.act_window',
+        'res_model': 'stock.picking',
+        'res_id': picking.id,
+        'view_mode': 'form',
+        'view_id': record.env.ref('stock.view_picking_form').id,
+        'target': 'current',
+    }
+        </field>
+    </record>
+
+    <record id="update_approval_status_approved" model="ir.actions.server">
+        <field name="name">Update Approval Status</field>
+        <field name="model_id" ref="approvals.model_approval_request"/>
+        <field name="state">code</field>
+        <field name="code">
+if record.request_status == 'approved':
+    approval_name = record.name
+    picking_identifier = approval_name[len('Approval Request for '):]
+    pickings = env['stock.picking'].search([('name', '=', picking_identifier)])
+    for picking in pickings:
+        picking.update({'x_approval_status': 'approved'})
+else:
+    approval_name = record.name
+    picking_identifier = approval_name[len('Approval Request for '):]
+    pickings = env['stock.picking'].search([('name', '=', picking_identifier)])
+    for picking in pickings:
+        picking.update({'x_approval_status': 'pending for approval'})
+        </field>
+    </record>
+
+    <record id="automation_update_approval_status" model="base.automation">
+        <field name="name">Update Approval Status</field>
+        <field name="model_id" ref="approvals.model_approval_request" />
+        <field name="trigger">on_create_or_write</field>
+        <field name="trigger_field_ids" eval="[(6, 0, [ref('approvals.field_approval_request__request_status')])]" />
+        <field name="action_server_ids" eval="[Command.link(ref('service.update_approval_status_approved'))]" />
+    </record>
+
+    <record id="update_request_status_message" model="ir.actions.server">
+        <field name="name">Chat Message for Request State</field>
+        <field name="model_id" ref="approvals.model_approval_request"/>
+        <field name="state">code</field>
+        <field name="code">
+if record.request_status == "refused":
+    approval_name = record.name
+    picking_identifier = approval_name[len('Approval Request for '):]
+    pickings = env['stock.picking'].search([('name', '=', picking_identifier)])
+    for picking in pickings:
+        picking.message_post(body='The Request has been refused.')
+elif record.request_status == "approved":
+    approval_name = record.name
+    picking_identifier = approval_name[len('Approval Request for '):]
+    pickings = env['stock.picking'].search([('name', '=', picking_identifier)])
+    for picking in pickings:
+        picking.message_post(body='The Request has been approved.')
+        </field>
+    </record>
+
+    <record id="automation_update_request_status_message" model="base.automation">
+        <field name="name">Chat Message for Request State</field>
+        <field name="model_id" ref="approvals.model_approval_request" />
+        <field name="trigger">on_create_or_write</field>
+        <field name="trigger_field_ids" eval="[(6, 0, [ref('approvals.field_approval_request__request_status')])]" />
+        <field name="action_server_ids" eval="[Command.link(ref('service.update_request_status_message'))]" />
+    </record>
+</odoo>

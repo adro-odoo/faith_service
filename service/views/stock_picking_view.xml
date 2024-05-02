@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="approval_type_view_picking_type_form" model="ir.ui.view">
+        <field name="name">stock.picking.type.inherit.approval.type</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.view_picking_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='create_backorder']" position="after">
+                <field name="x_approval_type"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="approval_status_view_picking_form" model="ir.ui.view">
+        <field name="name">stock.picking.inherit.approval.status</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="x_approval_status_check" invisible="1"/>
+                <field name="x_approval_status" invisible="not x_approval_status_check"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="smart_button_approval_form" model="ir.ui.view">
+        <field name="name">approvals.inherit.smart.button.form</field>
+        <field name="model">approval.request</field>
+        <field name="inherit_id" ref="approvals.approval_request_view_form"/>
+        <field name="arch" type="xml">
+                <div name="button_box" position="inside">
+                    <button name="%(action_redirect_to_transfer)d" type = "action" class="oe_stat_button" icon="fa-bars">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_text">
+                                        Transfer
+                                    </span>
+                                </div>
+                    </button>
+                </div>
+        </field>
+    </record> 
+
+    <record id="approval_request_button_form_view" model="ir.ui.view">
+        <field name="name">approval.request.button.form.view</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='button_validate']" position="after">
+                <field name="x_approval_sent" invisible="1"/>
+                <button name="%(service.approval_request_button_action)d" invisible="not x_approval_sent" string="Approval Request" type="action" class="oe_highlight" data-hotkey="v"/>
+            </xpath>
+        </field>
+    </record>  
+    
+    <record id="validate_button_form_view" model="ir.ui.view">
+        <field name="name">validate.button.form.view</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='button_validate']" position="attributes">
+                <attribute name="name">%(service.validate_button_action)d</attribute>
+                <attribute name="type">action</attribute>
+            </xpath>
+        </field>
+    </record> 
+</odoo>

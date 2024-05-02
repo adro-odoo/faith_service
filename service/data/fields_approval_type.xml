@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="field_x_approval_type" model="ir.model.fields">
+        <field name="name">x_approval_type</field>
+        <field name="model_id" ref="stock.model_stock_picking_type" />
+        <field name="ttype">many2one</field>
+        <field name="relation">approval.category</field>
+        <field name="field_description">Approval Type</field>
+    </record>
+
+    <record id="field_x_approval_sent" model="ir.model.fields">
+        <field name="name">x_approval_sent</field>
+        <field name="model_id" ref="stock.model_stock_picking" />
+        <field name="ttype">boolean</field>
+        <field name="field_description">Approval Sent</field>
+    </record>
+
+    <record id="field_x_approval_status_check" model="ir.model.fields">
+        <field name="name">x_approval_status_check</field>
+        <field name="model_id" ref="stock.model_stock_picking" />
+        <field name="ttype">boolean</field>
+        <field name="field_description">Approval Status Check</field>
+    </record>
+
+    <record id="field_x_approval_status" model="ir.model.fields">
+        <field name="name">x_approval_status</field>
+        <field name="model_id" ref="stock.model_stock_picking" />
+        <field name="ttype">selection</field>
+        <field name="field_description">Approval Status</field>
+        <field name="selection">[('pending for approval', 'Pending for Approval'),('approved','Approved')]</field>
+        <field name="readonly" eval="True" />
+    </record>
+    
+    <function model="ir.default" name="set" eval="('stock.picking', 'x_approval_status', 'pending for approval')"/>
+
+    <function model="ir.default" name="set" eval="('stock.picking', 'x_approval_sent', False)"/>
+
+</odoo>
